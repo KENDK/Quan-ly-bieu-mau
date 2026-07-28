@@ -7,6 +7,7 @@ import { ExamsView } from './components/ExamsView';
 import { BoardsManagementView } from './components/BoardsManagementView';
 import { TemplateEditorView } from './components/TemplateEditorView';
 import { FormGeneratorView } from './components/FormGeneratorView';
+import { StatisticsView } from './components/StatisticsView';
 import { storage } from './services/storage';
 import { exportAllExamFormsToZip } from './services/bulkExporter';
 import type { TrainingType, Personnel, Exam, ExamBoard, FormTemplate } from './types/schema';
@@ -20,6 +21,7 @@ export function App() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [boards, setBoards] = useState<ExamBoard[]>([]);
+  const [allBoards, setAllBoards] = useState<ExamBoard[]>([]);
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
 
   // Load all data from storage
@@ -33,6 +35,7 @@ export function App() {
     setActiveExamId(currentExamId);
 
     setBoards(storage.getBoards(currentExamId));
+    setAllBoards(storage.getBoards());
     setTemplates(storage.getTemplates());
   };
 
@@ -114,9 +117,21 @@ export function App() {
 
   const activeExam = exams.find(e => e.id === activeExamId) || exams[0];
 
+  // Label for the top bar breadcrumb
+  const PAGE_LABELS: Record<string, string> = {
+    dashboard: 'Tổng Quan',
+    exams: 'Quản Lý Kỳ Thi',
+    boards: 'Cơ Cấu Ban & Phân Công',
+    generator: 'Tạo & In Biểu Mẫu',
+    statistics: 'Thống Kê & Báo Cáo',
+    training: 'Cấu Hình › Loại Hình Đào Tạo',
+    personnel: 'Cấu Hình › Nhân Sự & Cán Bộ',
+    templates: 'Cấu Hình › Thư Viện Biểu Mẫu',
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex flex-col antialiased">
-      {/* Header & Nav */}
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
+      {/* Sidebar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -127,82 +142,111 @@ export function App() {
         onResetData={handleResetData}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            activeExam={activeExam}
-            exams={exams}
-            trainingTypes={trainingTypes}
-            personnel={personnel}
-            boards={boards}
-            templates={templates}
-            setActiveTab={setActiveTab}
-            onSelectExam={handleSelectExam}
-          />
-        )}
+      {/* Main content — offset by sidebar width on lg+ */}
+      <div className="lg:pl-64 flex flex-col min-h-screen">
 
-        {activeTab === 'training' && (
-          <TrainingTypesView
-            trainingTypes={trainingTypes}
-            onSave={handleSaveTrainingType}
-            onDelete={handleDeleteTrainingType}
-          />
-        )}
+        {/* Top header bar */}
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+          <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-8 h-14">
+            {/* Mobile: spacer for hamburger button */}
+            <div className="w-8 lg:hidden" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700 truncate">
+                {PAGE_LABELS[activeTab] ?? activeTab}
+              </p>
+              {activeExam && (activeTab === 'exams' || activeTab === 'boards' || activeTab === 'generator' || activeTab === 'dashboard') && (
+                <p className="text-xs text-indigo-600 font-medium truncate">
+                  {activeExam.code} — {activeExam.name}
+                </p>
+              )}
+            </div>
+          </div>
+        </header>
 
-        {activeTab === 'personnel' && (
-          <PersonnelView
-            personnel={personnel}
-            onSave={handleSavePersonnel}
-            onDelete={handleDeletePersonnel}
-          />
-        )}
+        {/* Page content */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              activeExam={activeExam}
+              exams={exams}
+              trainingTypes={trainingTypes}
+              personnel={personnel}
+              boards={boards}
+              templates={templates}
+              setActiveTab={setActiveTab}
+              onSelectExam={handleSelectExam}
+            />
+          )}
 
-        {activeTab === 'exams' && (
-          <ExamsView
-            exams={exams}
-            trainingTypes={trainingTypes}
-            activeExamId={activeExamId}
-            onSelectExam={handleSelectExam}
-            onSave={handleSaveExam}
-            onDelete={handleDeleteExam}
-          />
-        )}
+          {activeTab === 'training' && (
+            <TrainingTypesView
+              trainingTypes={trainingTypes}
+              onSave={handleSaveTrainingType}
+              onDelete={handleDeleteTrainingType}
+            />
+          )}
 
-        {activeTab === 'boards' && (
-          <BoardsManagementView
-            activeExam={activeExam}
-            boards={boards}
-            personnel={personnel}
-            onSaveBoard={handleSaveBoard}
-            onDeleteBoard={handleDeleteBoard}
-            onRefreshData={refreshAllData}
-          />
-        )}
+          {activeTab === 'personnel' && (
+            <PersonnelView
+              personnel={personnel}
+              onSave={handleSavePersonnel}
+              onDelete={handleDeletePersonnel}
+            />
+          )}
 
-        {activeTab === 'templates' && (
-          <TemplateEditorView
-            templates={templates}
-            onSave={handleSaveTemplate}
-            onDelete={handleDeleteTemplate}
-          />
-        )}
+          {activeTab === 'exams' && (
+            <ExamsView
+              exams={exams}
+              trainingTypes={trainingTypes}
+              activeExamId={activeExamId}
+              onSelectExam={handleSelectExam}
+              onSave={handleSaveExam}
+              onDelete={handleDeleteExam}
+            />
+          )}
 
-        {activeTab === 'generator' && (
-          <FormGeneratorView
-            activeExam={activeExam}
-            boards={boards}
-            templates={templates}
-          />
-        )}
-      </main>
+          {activeTab === 'boards' && (
+            <BoardsManagementView
+              activeExam={activeExam}
+              boards={boards}
+              personnel={personnel}
+              onSaveBoard={handleSaveBoard}
+              onDeleteBoard={handleDeleteBoard}
+              onRefreshData={refreshAllData}
+            />
+          )}
 
-      {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-4 text-center mt-auto">
-        <div className="max-w-7xl mx-auto px-4">
-          <p>© 2026 Hệ Thống Quản Lý & Tự Động Tạo Biểu Mẫu Kỳ Thi Tốt Nghiệp.</p>
-        </div>
-      </footer>
+          {activeTab === 'templates' && (
+            <TemplateEditorView
+              templates={templates}
+              onSave={handleSaveTemplate}
+              onDelete={handleDeleteTemplate}
+            />
+          )}
+
+          {activeTab === 'generator' && (
+            <FormGeneratorView
+              activeExam={activeExam}
+              boards={boards}
+              templates={templates}
+            />
+          )}
+
+          {activeTab === 'statistics' && (
+            <StatisticsView
+              exams={exams}
+              trainingTypes={trainingTypes}
+              personnel={personnel}
+              allBoards={allBoards}
+            />
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t border-slate-200 text-slate-400 text-xs py-3 text-center bg-white/50">
+          © 2026 Hệ Thống Quản Lý & Tự Động Tạo Biểu Mẫu Kỳ Thi Tốt Nghiệp.
+        </footer>
+      </div>
     </div>
   );
 }
