@@ -15,6 +15,7 @@ import type { TrainingType, Personnel, Exam, ExamBoard, FormTemplate } from './t
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [activeExamId, setActiveExamId] = useState<string>(storage.getActiveExamId());
+  const [isLoading, setIsLoading] = useState(true);
 
   // State collections
   const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]);
@@ -40,8 +41,31 @@ export function App() {
   };
 
   useEffect(() => {
-    refreshAllData();
-  }, [activeExamId]);
+    const initializeAndLoad = async () => {
+      setIsLoading(true);
+      await storage.init();
+      refreshAllData();
+      setIsLoading(false);
+    };
+    initializeAndLoad();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      refreshAllData();
+    }
+  }, [activeExamId, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center font-sans">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm font-semibold text-slate-600">Đang đồng bộ hóa dữ liệu với máy chủ Django...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSelectExam = (examId: string) => {
     storage.setActiveExamId(examId);

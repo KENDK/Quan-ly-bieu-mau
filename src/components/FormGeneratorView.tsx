@@ -44,6 +44,13 @@ export const FormGeneratorView: React.FC<FormGeneratorViewProps> = ({
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    const pageSize = currentTemplate?.pageSize || 'A4';
+    const margins = {
+      top: currentTemplate?.marginTop ?? 20,
+      bottom: currentTemplate?.marginBottom ?? 20,
+      left: currentTemplate?.marginLeft ?? 30,
+      right: currentTemplate?.marginRight ?? 15
+    };
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -51,8 +58,8 @@ export const FormGeneratorView: React.FC<FormGeneratorViewProps> = ({
           <title>${currentTemplate?.title || 'Biên bản kỳ thi'}</title>
           <style>
             @page {
-              size: A4;
-              margin: 20mm 15mm 20mm 30mm;
+              size: ${pageSize === 'Letter' ? 'letter' : pageSize === 'A5' ? 'A5' : 'A4'};
+              margin: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm;
             }
             body {
               font-family: 'Times New Roman', serif;
@@ -81,7 +88,14 @@ export const FormGeneratorView: React.FC<FormGeneratorViewProps> = ({
 
   const handleExportSingleWord = () => {
     if (!currentTemplate) return;
-    exportSingleFormToDoc(currentTemplate.title, currentTemplate.htmlContent, activeExam, activeBoard);
+    const pageSize = currentTemplate.pageSize || 'A4';
+    const margins = {
+      top: currentTemplate.marginTop ?? 20,
+      bottom: currentTemplate.marginBottom ?? 20,
+      left: currentTemplate.marginLeft ?? 30,
+      right: currentTemplate.marginRight ?? 15
+    };
+    exportSingleFormToDoc(currentTemplate.title, currentTemplate.htmlContent, activeExam, activeBoard, pageSize, margins);
   };
 
   const handleExportCurrentBoardZip = async () => {
@@ -232,7 +246,17 @@ export const FormGeneratorView: React.FC<FormGeneratorViewProps> = ({
         <div className="md:col-span-3">
           <div className="bg-slate-200/80 p-6 rounded-2xl border border-slate-300 min-h-[600px] overflow-x-auto flex justify-center">
             {currentTemplate ? (
-              <div className="bg-white shadow-2xl rounded-sm p-10 max-w-[210mm] w-full min-h-[297mm] border border-slate-300 font-serif text-slate-900 leading-relaxed transition transform">
+              <div 
+                className="bg-white shadow-2xl rounded-sm border border-slate-300 font-serif text-slate-900 leading-relaxed transition transform w-full"
+                style={{
+                  maxWidth: currentTemplate.pageSize === 'A5' ? '148mm' : currentTemplate.pageSize === 'Letter' ? '216mm' : '210mm',
+                  minHeight: currentTemplate.pageSize === 'A5' ? '210mm' : currentTemplate.pageSize === 'Letter' ? '279mm' : '297mm',
+                  paddingTop: `${currentTemplate.marginTop ?? 20}mm`,
+                  paddingBottom: `${currentTemplate.marginBottom ?? 20}mm`,
+                  paddingLeft: `${currentTemplate.marginLeft ?? 30}mm`,
+                  paddingRight: `${currentTemplate.marginRight ?? 15}mm`,
+                }}
+              >
                 {/* Dynamically Rendered HTML */}
                 <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
               </div>

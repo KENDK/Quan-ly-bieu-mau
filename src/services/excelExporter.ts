@@ -20,7 +20,7 @@ function applyHeaderStyle(ws: XLSX.WorkSheet, range: XLSX.Range) {
   for (let C = range.s.c; C <= range.e.c; C++) {
     const addr = XLSX.utils.encode_cell({ r: range.s.r, c: C });
     if (!ws[addr]) continue;
-    ws[addr].s = {
+    (ws[addr] as any).s = {
       font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
       fill: { fgColor: { rgb: '3730A3' } },
       alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
@@ -55,6 +55,7 @@ function buildExamSummarySheet(
     'Ngày Thi',
     'Địa Điểm',
     'Số Môn Thi',
+    'Danh Sách Môn Thi',
     'Số Phòng Thi',
     'SV / Phòng',
     'Tổng SV Dự Thi',
@@ -80,6 +81,7 @@ function buildExamSummarySheet(
       fmtDate(exam.examDate),
       exam.location,
       exam.totalSubjects,
+      exam.subjectsList?.join(', ') || '',
       exam.totalRooms,
       exam.studentsPerRoom,
       exam.totalRooms * exam.studentsPerRoom,
@@ -92,7 +94,7 @@ function buildExamSummarySheet(
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   applyHeaderStyle(ws, { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } });
-  setColWidths(ws, [5, 18, 50, 28, 22, 12, 30, 10, 12, 10, 14, 8, 18, 22, 14]);
+  setColWidths(ws, [5, 18, 50, 28, 22, 12, 30, 10, 35, 12, 10, 14, 8, 18, 22, 14]);
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   return ws;
 }

@@ -13,6 +13,7 @@ import type { FormTemplate } from '../types/schema';
 import { AVAILABLE_PLACEHOLDERS } from '../services/templateEngine';
 import JoditEditor from 'jodit-react';
 import 'jodit/es2015/jodit.min.css';
+import { renderAsync } from 'docx-preview';
 
 interface TemplateEditorViewProps {
   templates: FormTemplate[];
@@ -80,7 +81,12 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
   <p>Hôm nay, ngày {{KyThi.NgayThi}}, tại {{KyThi.DiaDiem}}.</p>
   <p>Ban thực hiện: <strong>{{Ban.Ten}}</strong></p>
   <p>Trưởng Ban: <strong>{{Ban.TruongBan.HoTen}}</strong></p>
-</div>`
+</div>`,
+      pageSize: 'A4',
+      marginTop: 20,
+      marginBottom: 20,
+      marginLeft: 30,
+      marginRight: 15
     });
     setActiveTab('visual');
   };
@@ -103,6 +109,35 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
     }
   };
 
+  const handleImportDocx = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const tempDiv = document.createElement('div');
+      
+      await renderAsync(arrayBuffer, tempDiv, undefined, {
+        className: 'docx',
+        inWrapper: false,
+        ignoreWidth: true,
+        ignoreHeight: true,
+      });
+
+      if (editingItem) {
+        setEditingItem({
+          ...editingItem,
+          htmlContent: tempDiv.innerHTML
+        });
+        setActiveTab('visual');
+      }
+      
+      e.target.value = '';
+    } catch (err: any) {
+      alert('Lỗi khi phân tích và nhập file Word: ' + err.message);
+    }
+  };
+
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem?.title || !editingItem?.htmlContent) {
@@ -117,7 +152,12 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
       description: editingItem.description || '',
       htmlContent: editingItem.htmlContent,
       createdAt: editingItem.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      pageSize: editingItem.pageSize || 'A4',
+      marginTop: Number(editingItem.marginTop ?? 20),
+      marginBottom: Number(editingItem.marginBottom ?? 20),
+      marginLeft: Number(editingItem.marginLeft ?? 30),
+      marginRight: Number(editingItem.marginRight ?? 15)
     };
     onSave(saved);
     setEditingItem(null);
@@ -170,6 +210,18 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
             </h3>
 
             <div className="flex items-center gap-3">
+              {/* Nhập từ Word */}
+              <label className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer transition select-none shadow-sm">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Nhập từ Word (.docx)</span>
+                <input
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={handleImportDocx}
+                />
+              </label>
+
               <div className="flex bg-slate-100 p-1 rounded-lg text-xs font-medium">
                 <button
                   type="button"
@@ -243,22 +295,93 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
               </div>
             </div>
 
+            {/* Page Setup Configuration */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Khổ Giấy</label>
+                <select
+                  value={editingItem.pageSize || 'A4'}
+                  onChange={(e) => setEditingItem({ ...editingItem, pageSize: e.target.value as any })}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="A4">A4 (210 x 297 mm)</option>
+                  <option value="A5">A5 (148 x 210 mm)</option>
+                  <option value="Letter">Letter (216 x 279 mm)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lề Trên (mm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingItem.marginTop ?? 20}
+                  onChange={(e) => setEditingItem({ ...editingItem, marginTop: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lề Dưới (mm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingItem.marginBottom ?? 20}
+                  onChange={(e) => setEditingItem({ ...editingItem, marginBottom: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lề Trái (mm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingItem.marginLeft ?? 30}
+                  onChange={(e) => setEditingItem({ ...editingItem, marginLeft: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lề Phải (mm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingItem.marginRight ?? 15}
+                  onChange={(e) => setEditingItem({ ...editingItem, marginRight: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
             {/* Split Screen: Editor with Variable Injector */}
             {activeTab === 'visual' || activeTab === 'code' ? (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Left: Editor (Visual or Raw HTML) */}
                 {activeTab === 'visual' ? (
-                  <div className="md:col-span-3 space-y-1">
+                  <div className="md:col-span-3 space-y-2">
                     <label className="block text-xs font-semibold text-slate-700">Soạn Thảo Trực Quan (Hỗ trợ copy/paste từ Word)</label>
-                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-slate-900">
-                      <JoditEditor
-                        ref={editorRef}
-                        value={editingItem.htmlContent || ''}
-                        config={joditConfig}
-                        onBlur={(newContent) => {
-                          setEditingItem(prev => prev ? { ...prev, htmlContent: newContent } : null);
+                    <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200 flex justify-center overflow-x-auto min-h-[500px]">
+                      <div 
+                        className="bg-white shadow-xl border border-slate-300 rounded-sm w-full transition-all duration-300 overflow-hidden"
+                        style={{
+                          maxWidth: editingItem.pageSize === 'A5' ? '148mm' : editingItem.pageSize === 'Letter' ? '216mm' : '210mm',
                         }}
-                      />
+                      >
+                        <JoditEditor
+                          ref={editorRef}
+                          value={editingItem.htmlContent || ''}
+                          config={joditConfig}
+                          onBlur={(newContent) => {
+                            setEditingItem(prev => prev ? { ...prev, htmlContent: newContent } : null);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -306,9 +429,17 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
               </div>
             ) : (
               /* Live Preview tab */
-              <div className="bg-slate-100 p-6 rounded-xl border border-slate-300 max-h-[500px] overflow-y-auto">
+              <div className="bg-slate-100 p-6 rounded-xl border border-slate-300 max-h-[500px] overflow-y-auto flex justify-center">
                 <div 
-                  className="bg-white p-8 shadow-md rounded border border-slate-200 max-w-2xl mx-auto"
+                  className="bg-white shadow-lg border border-slate-300 rounded-sm w-full transition-all duration-300 font-serif text-slate-900"
+                  style={{
+                    maxWidth: editingItem.pageSize === 'A5' ? '148mm' : editingItem.pageSize === 'Letter' ? '216mm' : '210mm',
+                    minHeight: editingItem.pageSize === 'A5' ? '210mm' : editingItem.pageSize === 'Letter' ? '279mm' : '297mm',
+                    paddingTop: `${editingItem.marginTop ?? 20}mm`,
+                    paddingBottom: `${editingItem.marginBottom ?? 20}mm`,
+                    paddingLeft: `${editingItem.marginLeft ?? 30}mm`,
+                    paddingRight: `${editingItem.marginRight ?? 15}mm`,
+                  }}
                   dangerouslySetInnerHTML={{ __html: editingItem.htmlContent || '' }}
                 />
               </div>
@@ -359,7 +490,14 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
               <div className="flex gap-1">
                 <button
                   onClick={() => {
-                    setEditingItem(tmpl);
+                    setEditingItem({
+                      pageSize: 'A4',
+                      marginTop: 20,
+                      marginBottom: 20,
+                      marginLeft: 30,
+                      marginRight: 15,
+                      ...tmpl
+                    });
                     setActiveTab('visual');
                   }}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"

@@ -13,10 +13,8 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
   Menu,
   X,
-  Zap,
 } from 'lucide-react';
 import type { Exam } from '../types/schema';
 

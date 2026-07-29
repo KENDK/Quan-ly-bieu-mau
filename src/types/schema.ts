@@ -68,6 +68,11 @@ export interface FormTemplate {
   htmlContent: string; // Chứa thẻ placeholder {{...}}
   createdAt: string;
   updatedAt: string;
+  pageSize?: 'A4' | 'A5' | 'Letter';
+  marginTop?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginRight?: number;
 }
 
 export interface GeneratedDocument {

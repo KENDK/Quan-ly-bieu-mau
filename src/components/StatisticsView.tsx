@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  BarChart3, Users, Calendar, Download, FileSpreadsheet,
-  TrendingUp, Award, Building2, BookOpen, UserCheck,
+  BarChart3, Users, Calendar, FileSpreadsheet,
+  Award, BookOpen,
   Filter, ChevronUp, ChevronDown, Search, GraduationCap,
   ClipboardList, Layers
 } from 'lucide-react';
@@ -69,13 +69,15 @@ const ExamStatsTab: React.FC<{
   trainingTypes: TrainingType[];
   allBoards: ExamBoard[];
   allAssignments: BoardMemberAssignment[];
+  personnel: Personnel[];
   onExport: () => void;
-}> = ({ exams, trainingTypes, allBoards, allAssignments, onExport }) => {
+}> = ({ exams, trainingTypes, allBoards, allAssignments, personnel, onExport }) => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [sortCol, setSortCol] = useState<string>('examDate');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     return exams
@@ -173,36 +175,135 @@ const ExamStatsTab: React.FC<{
                 <span className="flex items-center justify-center gap-1">Nhân Sự <SortIcon col="personnel" /></span>
               </th>
               <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500">Trạng Thái</th>
+              <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500 w-24">Chi Tiết</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.length === 0 ? (
-              <tr><td colSpan={10} className="text-center py-10 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>
+              <tr><td colSpan={11} className="text-center py-10 text-slate-400 text-sm">Không có dữ liệu phù hợp</td></tr>
             ) : rows.map(({ exam, tt, boardCount, personnelCount }, i) => (
-              <tr key={exam.id} className="hover:bg-indigo-50/40 transition">
-                <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-slate-800 leading-tight">{exam.name}</p>
-                  <p className="text-xs text-indigo-600 font-mono mt-0.5">{exam.code}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{exam.cohort}</p>
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-600">{tt?.name ?? '—'}</td>
-                <td className="px-4 py-3 text-center text-xs font-medium text-slate-700">{fmtDate(exam.examDate)}</td>
-                <td className="px-4 py-3 text-center font-bold text-indigo-700">{exam.totalSubjects}</td>
-                <td className="px-4 py-3 text-center text-slate-600">{exam.totalRooms}</td>
-                <td className="px-4 py-3 text-center text-slate-600">{exam.totalRooms * exam.studentsPerRoom}</td>
-                <td className="px-4 py-3 text-center font-semibold text-slate-700">{boardCount}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 font-bold text-xs px-2.5 py-1 rounded-full">
-                    <Users className="w-3 h-3" />{personnelCount}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLOR[exam.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {STATUS_LABEL[exam.status] ?? exam.status}
-                  </span>
-                </td>
-              </tr>
+              <React.Fragment key={exam.id}>
+                <tr className="hover:bg-indigo-50/40 transition">
+                  <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-slate-800 leading-tight">{exam.name}</p>
+                    <p className="text-xs text-indigo-600 font-mono mt-0.5">{exam.code}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{exam.cohort}</p>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{tt?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-center text-xs font-medium text-slate-700">{fmtDate(exam.examDate)}</td>
+                  <td className="px-4 py-3 text-center font-bold text-indigo-700">{exam.totalSubjects}</td>
+                  <td className="px-4 py-3 text-center text-slate-600">{exam.totalRooms}</td>
+                  <td className="px-4 py-3 text-center text-slate-600">{exam.totalRooms * exam.studentsPerRoom}</td>
+                  <td className="px-4 py-3 text-center font-semibold text-slate-700">{boardCount}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 font-bold text-xs px-2.5 py-1 rounded-full">
+                      <Users className="w-3 h-3" />{personnelCount}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_COLOR[exam.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {STATUS_LABEL[exam.status] ?? exam.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => setExpandedId(expandedId === exam.id ? null : exam.id)}
+                      className={`inline-flex items-center gap-1 font-semibold text-xs px-2.5 py-1.5 rounded-lg transition ${
+                        expandedId === exam.id 
+                          ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' 
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                      }`}
+                    >
+                      {expandedId === exam.id ? 'Ẩn' : 'Xem'}
+                    </button>
+                  </td>
+                </tr>
+                {expandedId === exam.id && (
+                  <tr className="bg-slate-50/50">
+                    <td colSpan={11} className="px-6 py-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-700">
+                        {/* Subjects section */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                          <h4 className="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                            <BookOpen className="w-4 h-4 text-indigo-600" />
+                            Danh Sách Môn Thi ({exam.subjectsList?.length || 0})
+                          </h4>
+                          {!exam.subjectsList || exam.subjectsList.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">Chưa thiết lập môn thi</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 pt-1 max-h-[250px] overflow-y-auto pr-1">
+                              {exam.subjectsList.map((subject, idx) => (
+                                <span key={idx} className="inline-block bg-slate-50 text-slate-700 text-xs px-2.5 py-1 rounded-md border border-slate-200 hover:bg-indigo-50 transition cursor-default">
+                                  {subject}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Members section */}
+                        <div className="md:col-span-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                          <h4 className="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                            <Users className="w-4 h-4 text-indigo-600" />
+                            Ban Chuyên Trách & Phân Công Vai Trò
+                          </h4>
+                          {(() => {
+                            const boards = allBoards.filter(b => b.examId === exam.id);
+                            if (boards.length === 0) {
+                              return <p className="text-xs text-slate-400 italic">Kỳ thi chưa thiết lập các Ban chuyên trách</p>;
+                            }
+
+                            return (
+                              <div className="space-y-3 divide-y divide-slate-100 max-h-[300px] overflow-y-auto pr-1">
+                                {boards.map(board => {
+                                  const boardAssignments = allAssignments.filter(a => a.examBoardId === board.id);
+                                  return (
+                                    <div key={board.id} className="pt-2.5 first:pt-0 space-y-1.5">
+                                      <h5 className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                                        {board.boardName} ({board.boardCode})
+                                      </h5>
+                                      {boardAssignments.length === 0 ? (
+                                        <p className="text-[11px] text-slate-400 italic pl-3">Chưa có nhân sự được phân công</p>
+                                      ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-3">
+                                          {boardAssignments.map(asgn => {
+                                            const p = personnel.find(x => x.id === asgn.personnelId);
+                                            if (!p) return null;
+                                            return (
+                                              <div key={asgn.id} className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 text-xs flex flex-col justify-between hover:border-indigo-200 hover:bg-indigo-50/10 transition">
+                                                <div>
+                                                  <p className="font-bold text-slate-800">{p.fullName}</p>
+                                                  <p className="text-[10px] text-slate-400 mt-0.5">{p.academicTitle} - {p.department} ({p.position})</p>
+                                                </div>
+                                                <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                                                  <span className="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded text-[10px] border border-indigo-100">
+                                                    {asgn.roleName}
+                                                  </span>
+                                                  {asgn.assignedSubject && (
+                                                    <span className="bg-emerald-50 text-emerald-700 font-medium px-1.5 py-0.5 rounded text-[10px] border border-emerald-100 max-w-[120px] truncate" title={asgn.assignedSubject}>
+                                                      {asgn.assignedSubject}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
@@ -652,6 +753,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
             <ExamStatsTab
               exams={exams} trainingTypes={trainingTypes}
               allBoards={allBoards} allAssignments={allAssignments}
+              personnel={personnel}
               onExport={() => exportExamSummaryExcel(exportParams)}
             />
           )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Award, Save, X, BookOpen, Calendar, MapPin, Users, PlusCircle, Trash } from 'lucide-react';
+import { Plus, Edit2, Trash2, Award, Save, X, BookOpen, Calendar, MapPin, Users, PlusCircle, Trash, Download, FileSpreadsheet } from 'lucide-react';
 import type { Exam, TrainingType } from '../types/schema';
+import * as XLSX from 'xlsx';
 
 interface ExamsViewProps {
   exams: Exam[];
@@ -21,6 +22,121 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
 }) => {
   const [editingItem, setEditingItem] = useState<Partial<Exam> | null>(null);
   const [subjectInput, setSubjectInput] = useState('');
+
+  const handleDownloadTemplate = () => {
+    const headers = [
+      'Mã Kỳ Thi',
+      'Tên Kỳ Thi',
+      'Mã Loại Hình Đào Tạo',
+      'Khóa Tốt Nghiệp',
+      'Ngày Thi (YYYY-MM-DD)',
+      'Địa Điểm',
+      'Số Phòng Thi',
+      'Sinh Viên / Phòng',
+      'Danh Sách Môn Thi (Phân cách bằng dấu phẩy)'
+    ];
+    const data = [
+      headers,
+      [
+        'KTHI-2026-CH',
+        'Kỳ thi tốt nghiệp Cao học đợt 1 năm 2026',
+        trainingTypes[0]?.code || 'CH',
+        'Khóa 32 (2024-2026)',
+        '2026-10-15',
+        'Giảng đường B2',
+        '5',
+        '30',
+        'Môn 1: Phương pháp nghiên cứu khoa học, Môn 2: Triết học học phần II'
+      ],
+      [
+        'KTHI-2026-DH',
+        'Kỳ thi tốt nghiệp Đại học chính quy năm 2026',
+        trainingTypes[1]?.code || 'CQ',
+        'Khóa K67 (2022-2026)',
+        '2026-06-20',
+        'Nhà A1',
+        '10',
+        '40',
+        'Môn 1: Quản trị học, Môn 2: Marketing căn bản, Môn 3: Kinh tế vĩ mô'
+      ]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Mau_Import_Ky_Thi');
+    XLSX.writeFile(wb, 'Mau_Import_Ky_Thi.xlsx');
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+
+      if (rows.length <= 1) {
+        alert('File excel không chứa dữ liệu hoặc sai định dạng');
+        return;
+      }
+
+      let importCount = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0 || !row[0]) continue;
+
+        const code = String(row[0]).trim();
+        const name = String(row[1]).trim();
+        const ttCode = String(row[2] || '').trim();
+        const cohort = String(row[3] || '').trim();
+        const examDate = String(row[4] || '').trim();
+        const location = String(row[5] || '').trim();
+        const totalRooms = parseInt(String(row[6])) || 0;
+        const studentsPerRoom = parseInt(String(row[7])) || 0;
+        const subjectsStr = String(row[8] || '').trim();
+
+        if (!code || !name) continue;
+
+        let trainingTypeId = trainingTypes[0]?.id || '';
+        if (ttCode) {
+          const match = trainingTypes.find(t => t.code.toLowerCase() === ttCode.toLowerCase());
+          if (match) {
+            trainingTypeId = match.id;
+          }
+        }
+
+        const subjectsList = subjectsStr 
+          ? subjectsStr.split(',').map(s => s.trim()).filter(Boolean) 
+          : [];
+        
+        const newExam: Exam = {
+          id: `ex-${Date.now()}-${i}`,
+          code: code.toUpperCase(),
+          name,
+          trainingTypeId,
+          cohort,
+          examDate: examDate || new Date().toISOString().split('T')[0],
+          location,
+          totalSubjects: subjectsList.length,
+          totalRooms,
+          studentsPerRoom,
+          subjectsList,
+          status: 'planning',
+          createdAt: new Date().toISOString()
+        };
+
+        onSave(newExam);
+        importCount++;
+      }
+
+      alert(`Đã nhập thành công ${importCount} kỳ thi từ file Excel!`);
+      e.target.value = '';
+    } catch (err: any) {
+      alert('Lỗi khi đọc file Excel: ' + err.message);
+    }
+  };
 
   const handleCreateNew = () => {
     setEditingItem({
@@ -97,12 +213,33 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
             Cấu hình thuộc tính kỳ thi: Khóa tốt nghiệp, Ngày thi, Số phòng, Số môn, Sinh viên/phòng
           </p>
         </div>
-        <button
-          onClick={handleCreateNew}
-          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition"
-        >
-          <Plus className="w-4 h-4" /> Tạo Kỳ Thi Mới
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 transition shadow-sm"
+            title="Tải File Excel Mẫu"
+          >
+            <Download className="w-4 h-4" /> Tải File Mẫu
+          </button>
+
+          <label className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-2.5 rounded-xl cursor-pointer transition shadow-sm">
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Nhập Excel</span>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
+          </label>
+
+          <button
+            onClick={handleCreateNew}
+            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition"
+          >
+            <Plus className="w-4 h-4" /> Tạo Kỳ Thi Mới
+          </button>
+        </div>
       </div>
 
       {/* Modal / Form Edit */}

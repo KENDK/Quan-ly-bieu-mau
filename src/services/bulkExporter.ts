@@ -5,7 +5,19 @@ import { storage } from './storage';
 import { renderTemplateHtml } from './templateEngine';
 
 // Helper to convert HTML string to Word-compatible HTML Document (.doc / .docx)
-export function wrapHtmlForDocx(title: string, bodyHtml: string): string {
+export function wrapHtmlForDocx(
+  title: string, 
+  bodyHtml: string, 
+  pageSize: string = 'A4', 
+  margins: { top: number; bottom: number; left: number; right: number } = { top: 20, bottom: 20, left: 30, right: 15 }
+): string {
+  const sizeMap: Record<string, string> = {
+    A4: '210mm 297mm',
+    A5: '148mm 210mm',
+    Letter: '215.9mm 279.4mm'
+  };
+  const size = sizeMap[pageSize] || sizeMap.A4;
+
   return `<!DOCTYPE html>
 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
@@ -22,8 +34,8 @@ export function wrapHtmlForDocx(title: string, bodyHtml: string): string {
   <![endif]-->
   <style>
     @page WordSection1 {
-      size: 210mm 297mm; /* A4 */
-      margin: 20mm 15mm 20mm 30mm; /* Vietnamese Standard Margins */
+      size: ${size};
+      margin: ${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm;
     }
     div.WordSection1 {
       page: WordSection1;
@@ -52,9 +64,16 @@ export function wrapHtmlForDocx(title: string, bodyHtml: string): string {
 }
 
 // Download a single document as Word (.doc) file
-export function exportSingleFormToDoc(title: string, htmlContent: string, exam: Exam, board?: ExamBoard): void {
+export function exportSingleFormToDoc(
+  title: string, 
+  htmlContent: string, 
+  exam: Exam, 
+  board?: ExamBoard,
+  pageSize: string = 'A4',
+  margins: { top: number; bottom: number; left: number; right: number } = { top: 20, bottom: 20, left: 30, right: 15 }
+): void {
   const rendered = renderTemplateHtml(htmlContent, exam, board);
-  const fullDocHtml = wrapHtmlForDocx(title, rendered);
+  const fullDocHtml = wrapHtmlForDocx(title, rendered, pageSize, margins);
   const blob = new Blob(['\ufeff' + fullDocHtml], { type: 'application/msword;charset=utf-8' });
   const safeTitle = title.replace(/[^a-zA-Z0-9_ -]/g, '_');
   saveAs(blob, `${safeTitle}.doc`);
@@ -74,7 +93,14 @@ export async function exportBoardFormsToZip(exam: Exam, board: ExamBoard): Promi
 
   templates.forEach((tmpl, idx) => {
     const rendered = renderTemplateHtml(tmpl.htmlContent, exam, board);
-    const docHtml = wrapHtmlForDocx(tmpl.title, rendered);
+    const pageSize = tmpl.pageSize || 'A4';
+    const margins = {
+      top: tmpl.marginTop ?? 20,
+      bottom: tmpl.marginBottom ?? 20,
+      left: tmpl.marginLeft ?? 30,
+      right: tmpl.marginRight ?? 15
+    };
+    const docHtml = wrapHtmlForDocx(tmpl.title, rendered, pageSize, margins);
     const safeTitle = `${idx + 1}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.doc`;
     folder?.file(safeTitle, '\ufeff' + docHtml);
   });
@@ -105,7 +131,14 @@ export async function exportAllExamFormsToZip(exam: Exam): Promise<void> {
 
       templates.forEach((tmpl, idx) => {
         const rendered = renderTemplateHtml(tmpl.htmlContent, exam, board);
-        const docHtml = wrapHtmlForDocx(tmpl.title, rendered);
+        const pageSize = tmpl.pageSize || 'A4';
+        const margins = {
+          top: tmpl.marginTop ?? 20,
+          bottom: tmpl.marginBottom ?? 20,
+          left: tmpl.marginLeft ?? 30,
+          right: tmpl.marginRight ?? 15
+        };
+        const docHtml = wrapHtmlForDocx(tmpl.title, rendered, pageSize, margins);
         const safeTitle = `${String(idx + 1).padStart(2, '0')}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.doc`;
         folder?.file(safeTitle, '\ufeff' + docHtml);
         totalFiles++;
