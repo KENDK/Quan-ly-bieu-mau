@@ -275,7 +275,9 @@ const ExamStatsTab: React.FC<{
                                               <div key={asgn.id} className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 text-xs flex flex-col justify-between hover:border-indigo-200 hover:bg-indigo-50/10 transition">
                                                 <div>
                                                   <p className="font-bold text-slate-800">{p.fullName}</p>
-                                                  <p className="text-[10px] text-slate-400 mt-0.5">{p.academicTitle} - {p.department} ({p.position})</p>
+                                                  <p className="text-[10px] text-slate-400 mt-0.5">
+                                                    {p.academicTitle ? `${p.academicTitle} ` : ''}{p.militaryRank ? `[${p.militaryRank}]` : ''} - {p.department} ({p.position || 'Cán bộ'})
+                                                  </p>
                                                 </div>
                                                 <div className="mt-1.5 flex flex-wrap gap-1 items-center">
                                                   <span className="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded text-[10px] border border-indigo-100">
@@ -423,7 +425,7 @@ const PersonnelStatsTab: React.FC<{
                   <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold text-slate-800">{p.fullName}</p>
-                    <p className="text-xs text-indigo-600 mt-0.5">{p.academicTitle} · {p.position}</p>
+                    <p className="text-xs text-indigo-600 mt-0.5">{p.academicTitle ? `${p.academicTitle} · ` : ''}{p.position || 'Cán bộ'}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-600">{p.department}</td>
                   <td className="px-4 py-3 text-center">

@@ -7,7 +7,11 @@ import {
   UserPlus, 
   Save, 
   X, 
-  ShieldCheck
+  ShieldCheck,
+  FileText,
+  Upload,
+  Eye,
+  FileCheck
 } from 'lucide-react';
 import type { Exam, ExamBoard, BoardMemberAssignment, Personnel } from '../types/schema';
 import { storage } from '../services/storage';
@@ -113,6 +117,65 @@ export const BoardsManagementView: React.FC<BoardsManagementViewProps> = ({
     }
   };
 
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeBoard) return;
+
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+      alert('Vui lòng chọn tệp định dạng PDF!');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Pdf = reader.result as string;
+        const updatedBoard: ExamBoard = {
+          ...activeBoard,
+          pdfFile: base64Pdf,
+          pdfStatus: 'uploaded',
+          pdfUploadedAt: new Date().toISOString()
+        };
+        onSaveBoard(updatedBoard);
+        alert(`Đã tải lên và lưu hồ sơ PDF scan đã ký cho "${activeBoard.boardName}"!`);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      alert('Lỗi tải file PDF: ' + err.message);
+    }
+  };
+
+  // Calculate overlap warnings (Personnel assigned to > 1 board in this exam)
+  const allExamAssignments = boards.flatMap(b => storage.getAssignments(b.id));
+  const personnelBoardCounts: Record<string, string[]> = {};
+  allExamAssignments.forEach(as => {
+    const board = boards.find(b => b.id === as.examBoardId);
+    const boardName = board ? board.boardName : 'Ban không xác định';
+    if (!personnelBoardCounts[as.personnelId]) {
+      personnelBoardCounts[as.personnelId] = [];
+    }
+    if (!personnelBoardCounts[as.personnelId].includes(boardName)) {
+      personnelBoardCounts[as.personnelId].push(boardName);
+    }
+  });
+
+  const overlapWarnings = Object.entries(personnelBoardCounts)
+    .filter(([_, boardNames]) => boardNames.length > 1)
+    .map(([pId, boardNames]) => {
+      const p = personnel.find(x => x.id === pId);
+      return {
+        personnelName: p ? `${p.academicTitle ? p.academicTitle + ' ' : ''}${p.fullName}` : 'Cán bộ',
+        boards: boardNames
+      };
+    });
+
+  // Calculate unassigned exam subjects
+  const assignedSubjectsList = allExamAssignments.map(as => (as.assignedSubject || '').toLowerCase());
+  const unassignedSubjects = (activeExam.subjectsList || []).filter(sub => {
+    const subClean = sub.toLowerCase();
+    return !assignedSubjectsList.some(as => as.includes(subClean) || subClean.includes(as));
+  });
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -137,6 +200,43 @@ export const BoardsManagementView: React.FC<BoardsManagementViewProps> = ({
           <Plus className="w-4 h-4" /> Thêm Ban Mới
         </button>
       </div>
+
+      {/* Safety Validation Warning Alerts */}
+      {(overlapWarnings.length > 0 || unassignedSubjects.length > 0) && (
+        <div className="space-y-3">
+          {/* Overlap Warning Alert Banner */}
+          {overlapWarnings.length > 0 && (
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl shadow-sm space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-800 text-xs uppercase tracking-wider">
+                  ⚠️ Cảnh báo phân công trùng lặp ({overlapWarnings.length} cán bộ kiêm nhiệm)
+                </span>
+              </div>
+              <ul className="text-xs text-amber-900 list-disc list-inside space-y-0.5">
+                {overlapWarnings.map((w, idx) => (
+                  <li key={idx}>
+                    <span className="font-semibold">{w.personnelName}</span> được phân công tại {w.boards.length} ban: {w.boards.join(', ')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Unassigned Subject Warning Alert Banner */}
+          {unassignedSubjects.length > 0 && (
+            <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-xl shadow-sm space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-rose-800 text-xs uppercase tracking-wider">
+                  🚨 Cảnh báo chưa phân công môn thi ({unassignedSubjects.length} môn)
+                </span>
+              </div>
+              <p className="text-xs text-rose-900">
+                Các môn thi chưa có cán bộ phụ trách: <span className="font-semibold">{unassignedSubjects.join(', ')}</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Board Edit Modal */}
       {editingBoard && (
@@ -234,11 +334,20 @@ export const BoardsManagementView: React.FC<BoardsManagementViewProps> = ({
                 }`}
               >
                 <div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-indigo-600'
-                  }`}>
-                    {b.boardCode}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-indigo-600'
+                    }`}>
+                      {b.boardCode}
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      b.pdfStatus === 'uploaded'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {b.pdfStatus === 'uploaded' ? 'Đã lưu hồ sơ' : 'Chờ ký duyệt'}
+                    </span>
+                  </div>
                   <h4 className="font-bold text-sm mt-1">{b.boardName}</h4>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -287,6 +396,64 @@ export const BoardsManagementView: React.FC<BoardsManagementViewProps> = ({
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+              </div>
+
+              {/* PDF Scan Upload & Archive Portfolio Control Panel */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${
+                    activeBoard.pdfStatus === 'uploaded' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Hồ Sơ PDF Scan Đã Ký Duyệt</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        activeBoard.pdfStatus === 'uploaded' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+                      }`}>
+                        {activeBoard.pdfStatus === 'uploaded' ? 'Đã lưu hồ sơ' : 'Chờ ký duyệt'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {activeBoard.pdfStatus === 'uploaded' && activeBoard.pdfUploadedAt
+                        ? `Đã lưu hồ sơ lúc: ${new Date(activeBoard.pdfUploadedAt).toLocaleString('vi-VN')}`
+                        : 'Chưa có bản scan PDF đính kèm cho Ban này'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  {activeBoard.pdfFile ? (
+                    <>
+                      <a
+                        href={activeBoard.pdfFile}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Xem PDF
+                      </a>
+                      <a
+                        href={activeBoard.pdfFile}
+                        download={`Ho_So_Scan_${activeBoard.boardCode}_${activeExam.code}.pdf`}
+                        className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                      >
+                        <FileCheck className="w-3.5 h-3.5" /> Tải Hồ Sơ PDF
+                      </a>
+                      <label className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-pointer transition">
+                        <Upload className="w-3.5 h-3.5" /> Đổi File
+                        <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
+                      </label>
+                    </>
+                  ) : (
+                    <label className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl cursor-pointer transition shadow-sm">
+                      <Upload className="w-4 h-4" />
+                      <span>Upload PDF Scan Đã Ký</span>
+                      <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -344,14 +511,27 @@ export const BoardsManagementView: React.FC<BoardsManagementViewProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Môn Thi / Phạm Vi Phụ Trách</label>
-                        <input
-                          type="text"
-                          placeholder="VD: Triết học Mác - Lênin..."
-                          value={editingAssignment.assignedSubject || ''}
-                          onChange={(e) => setEditingAssignment({ ...editingAssignment, assignedSubject: e.target.value })}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Môn Thi Phụ Trách</label>
+                        {activeExam.subjectsList && activeExam.subjectsList.length > 0 ? (
+                          <select
+                            value={editingAssignment.assignedSubject || ''}
+                            onChange={(e) => setEditingAssignment({ ...editingAssignment, assignedSubject: e.target.value })}
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">-- Không chọn môn thi cụ thể --</option>
+                            {activeExam.subjectsList.map((sub, sIdx) => (
+                              <option key={sIdx} value={sub}>{sub}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="VD: Triết học Mác - Lênin..."
+                            value={editingAssignment.assignedSubject || ''}
+                            onChange={(e) => setEditingAssignment({ ...editingAssignment, assignedSubject: e.target.value })}
+                            className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        )}
                       </div>
 
                       <div>

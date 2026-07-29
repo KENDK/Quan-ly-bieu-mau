@@ -24,13 +24,14 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
       'Đơn vị / Khoa phòng',
       'Chức vụ',
       'Số điện thoại',
-      'Email'
+      'Email',
+      'Cấp bậc Quân hàm'
     ];
     const data = [
       headers,
-      ['Nguyễn Văn A', 'TS.', 'Khoa Công nghệ thông tin', 'Trưởng bộ môn', '0912345678', 'nva@university.edu.vn'],
-      ['Trần Thị B', 'PGS.TS.', 'Khoa Lý luận chính trị', 'Phó Trưởng khoa', '0987654321', 'ttb@university.edu.vn'],
-      ['Lê Văn C', 'ThS.', 'Phòng Đào tạo', 'Chuyên viên', '', 'lvc@university.edu.vn']
+      ['Nguyễn Văn A', 'TS.', 'Khoa Công nghệ thông tin', 'Trưởng bộ môn', '0912345678', 'nva@university.edu.vn', 'Trung tá'],
+      ['Trần Thị B', 'PGS.TS.', 'Khoa Lý luận chính trị', 'Phó Trưởng khoa', '0987654321', 'ttb@university.edu.vn', 'Thượng tá'],
+      ['Lê Văn C', 'ThS.', 'Phòng Đào tạo', 'Chuyên viên', '', 'lvc@university.edu.vn', '']
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -49,24 +50,59 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
       const ws = wb.Sheets[wsname];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
-      if (rows.length <= 1) {
-        alert('File excel không chứa dữ liệu hoặc sai định dạng');
+      if (!rows || rows.length <= 1) {
+        alert('Tệp Excel không chứa dữ liệu hoặc thiếu dòng tiêu đề!');
         return;
       }
 
+      const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+      
       let importCount = 0;
+      const errorRows: string[] = [];
+
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        if (!row || row.length === 0 || !row[0]) continue;
+        if (!row || row.length === 0 || row.every(cell => !cell)) continue;
 
-        const fullName = String(row[0]).trim();
-        const academicTitle = String(row[1] || 'CN').trim();
-        const department = String(row[2]).trim();
-        const position = String(row[3] || '').trim();
-        const phone = String(row[4] || '').trim();
-        const email = String(row[5] || '').trim();
+        let fullName = '';
+        let academicTitle = '';
+        let department = '';
+        let position = '';
+        let phone = '';
+        let email = '';
+        let militaryRank = '';
 
-        if (!fullName || !department) continue;
+        if (headers.includes('họ và tên') || headers.includes('họ tên')) {
+          const nameIdx = headers.findIndex(h => h.includes('họ'));
+          const titleIdx = headers.findIndex(h => h.includes('học vị') || h.includes('học hàm') || h.includes('trình độ'));
+          const deptIdx = headers.findIndex(h => h.includes('đơn vị') || h.includes('khoa'));
+          const posIdx = headers.findIndex(h => h.includes('chức vụ'));
+          const phoneIdx = headers.findIndex(h => h.includes('điện thoại') || h.includes('phone'));
+          const emailIdx = headers.findIndex(h => h.includes('email'));
+          const rankIdx = headers.findIndex(h => h.includes('cấp bậc') || h.includes('quân hàm'));
+
+          fullName = nameIdx !== -1 ? String(row[nameIdx] || '').trim() : '';
+          academicTitle = titleIdx !== -1 ? String(row[titleIdx] || '').trim() : '';
+          department = deptIdx !== -1 ? String(row[deptIdx] || '').trim() : '';
+          position = posIdx !== -1 ? String(row[posIdx] || '').trim() : '';
+          phone = phoneIdx !== -1 ? String(row[phoneIdx] || '').trim() : '';
+          email = emailIdx !== -1 ? String(row[emailIdx] || '').trim() : '';
+          militaryRank = rankIdx !== -1 ? String(row[rankIdx] || '').trim() : '';
+        } else {
+          // Positional fallback: 0: FullName, 1: AcademicTitle, 2: Department, 3: Position, 4: Phone, 5: Email, 6: MilitaryRank
+          fullName = String(row[0] || '').trim();
+          academicTitle = String(row[1] || '').trim();
+          department = String(row[2] || '').trim();
+          position = String(row[3] || '').trim();
+          phone = String(row[4] || '').trim();
+          email = String(row[5] || '').trim();
+          militaryRank = String(row[6] || '').trim();
+        }
+
+        if (!fullName || !department) {
+          errorRows.push(`Dòng ${i + 1}: Thiếu Họ tên hoặc Đơn vị công tác`);
+          continue;
+        }
 
         const newPersonnel: Personnel = {
           id: `p-${Date.now()}-${i}`,
@@ -76,6 +112,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
           position,
           phone,
           email,
+          militaryRank,
           createdAt: new Date().toISOString()
         };
 
@@ -83,10 +120,14 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
         importCount++;
       }
 
-      alert(`Đã nhập thành công ${importCount} cán bộ từ file Excel!`);
+      let message = `Đã nhập thành công ${importCount} cán bộ!`;
+      if (errorRows.length > 0) {
+        message += `\n\nCảnh báo (${errorRows.length} dòng bị bỏ qua):\n` + errorRows.slice(0, 5).join('\n');
+      }
+      alert(message);
       e.target.value = '';
     } catch (err: any) {
-      alert('Lỗi khi đọc file Excel: ' + err.message);
+      alert('Lỗi đọc tệp Excel: ' + err.message);
     }
   };
 
@@ -99,6 +140,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
       'Chức vụ',
       'Số điện thoại',
       'Email',
+      'Cấp bậc',
       'Ngày tạo'
     ];
     const rows = personnel.map((p, i) => [
@@ -109,6 +151,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
       p.position,
       p.phone || '',
       p.email || '',
+      p.militaryRank || '',
       new Date(p.createdAt).toLocaleDateString('vi-VN')
     ]);
 
@@ -122,11 +165,12 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
     setEditingItem({
       id: `p-${Date.now()}`,
       fullName: '',
-      academicTitle: 'TS',
+      academicTitle: '',
       department: '',
       position: '',
       phone: '',
-      email: ''
+      email: '',
+      militaryRank: ''
     });
   };
 
@@ -139,21 +183,29 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
     onSave({
       id: editingItem.id || `p-${Date.now()}`,
       fullName: editingItem.fullName.trim(),
-      academicTitle: editingItem.academicTitle || 'TS',
+      academicTitle: editingItem.academicTitle || '',
       department: editingItem.department.trim(),
       position: editingItem.position || '',
       phone: editingItem.phone || '',
       email: editingItem.email || '',
+      militaryRank: editingItem.militaryRank || '',
       createdAt: editingItem.createdAt || new Date().toISOString()
     });
     setEditingItem(null);
   };
 
-  const filteredPersonnel = personnel.filter(p =>
-    p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.position.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [rankFilter, setRankFilter] = useState('');
+
+  const filteredPersonnel = personnel.filter(p => {
+    const matchesSearch =
+      p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.militaryRank && p.militaryRank.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesRank = !rankFilter || p.militaryRank === rankFilter;
+    return matchesSearch && matchesRank;
+  });
 
   return (
     <div className="space-y-6">
@@ -179,6 +231,22 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+
+          <select
+            value={rankFilter}
+            onChange={(e) => setRankFilter(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+          >
+            <option value="">Tất cả cấp bậc</option>
+            <option value="Thiếu úy">Thiếu úy</option>
+            <option value="Trung úy">Trung úy</option>
+            <option value="Thượng úy">Thượng úy</option>
+            <option value="Đại úy">Đại úy</option>
+            <option value="Thiếu tá">Thiếu tá</option>
+            <option value="Trung tá">Trung tá</option>
+            <option value="Thượng tá">Thượng tá</option>
+            <option value="Đại tá">Đại tá</option>
+          </select>
           
           <div className="flex items-center gap-2">
             {/* Tải File Excel Mẫu */}
@@ -236,17 +304,18 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
           <form onSubmit={handleSaveForm} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Học Hàm / Học Vị (*)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Học Hàm / Học Vị</label>
                 <select
-                  value={editingItem.academicTitle || 'TS'}
+                  value={editingItem.academicTitle || ''}
                   onChange={(e) => setEditingItem({ ...editingItem, academicTitle: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 >
+                  <option value="">-- Để trống (Không có) --</option>
                   <option value="GS.TS">GS.TS</option>
                   <option value="PGS.TS">PGS.TS</option>
                   <option value="TS">TS</option>
                   <option value="ThS">ThS</option>
-                  <option value="CN">CN</option>
+                  <option value="CN">CN (Cử nhân)</option>
                   <option value="BS">BS</option>
                 </select>
               </div>
@@ -289,7 +358,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Số Điện Thoại</label>
                 <input
@@ -310,6 +379,27 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
                   onChange={(e) => setEditingItem({ ...editingItem, email: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Cấp bậc Quân hàm</label>
+                <select
+                  value={editingItem.militaryRank || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, militaryRank: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Không (Dân sự)</option>
+                  <option value="Thiếu úy">Thiếu úy</option>
+                  <option value="Trung úy">Trung úy</option>
+                  <option value="Thượng úy">Thượng úy</option>
+                  <option value="Đại úy">Đại úy</option>
+                  <option value="Thiếu tá">Thiếu tá</option>
+                  <option value="Trung tá">Trung tá</option>
+                  <option value="Thượng tá">Thượng tá</option>
+                  <option value="Đại tá">Đại tá</option>
+                  <option value="Thiếu tướng">Thiếu tướng</option>
+                  <option value="Trung tướng">Trung tướng</option>
+                </select>
               </div>
             </div>
 
@@ -338,9 +428,18 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
           <div key={p.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-indigo-300 transition space-y-3">
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                  {p.academicTitle}
-                </span>
+                <div className="flex gap-1.5 items-center flex-wrap">
+                  {p.militaryRank && (
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                      {p.militaryRank}
+                    </span>
+                  )}
+                  {p.academicTitle && (
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {p.academicTitle}
+                    </span>
+                  )}
+                </div>
                 <h3 className="font-bold text-slate-900 text-base mt-1">{p.fullName}</h3>
               </div>
               <div className="flex gap-1">

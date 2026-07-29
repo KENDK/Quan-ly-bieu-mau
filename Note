@@ -1,0 +1,4 @@
+- Trong cấu hình cho phép tạo danh sách môn thi
+- Khi cấu hình Kỳ thi cho phép chọn môn thi từ trong danh sách có sẵn
+- Khi tạo danh sách các ban có liên quan tới môn thi sẽ chọn môn thi từ danh sách đã thiết lập khi cấu hình kỳ thi
+- Cảnh báo khi chưa phân công đủ thành viên liên quan tới các môn thi

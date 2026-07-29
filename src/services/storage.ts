@@ -1,6 +1,7 @@
-import type { TrainingType, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate } from '../types/schema';
+import type { TrainingType, GlobalSubject, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate } from '../types/schema';
 import { 
-  INITIAL_TRAINING_TYPES, 
+  INITIAL_TRAINING_TYPES,
+  INITIAL_GLOBAL_SUBJECTS,
   INITIAL_PERSONNEL, 
   INITIAL_EXAMS, 
   INITIAL_BOARDS, 
@@ -12,6 +13,7 @@ const BASE_URL = '/api';
 
 class StorageService {
   private trainingTypes: TrainingType[] = [];
+  private globalSubjects: GlobalSubject[] = [];
   private personnel: Personnel[] = [];
   private exams: Exam[] = [];
   private boards: ExamBoard[] = [];
@@ -28,6 +30,7 @@ class StorageService {
 
   private loadFromLocalStorage() {
     this.trainingTypes = JSON.parse(localStorage.getItem('qlbm_training_types') || '[]');
+    this.globalSubjects = JSON.parse(localStorage.getItem('qlbm_global_subjects') || '[]');
     this.personnel = JSON.parse(localStorage.getItem('qlbm_personnel') || '[]');
     this.exams = JSON.parse(localStorage.getItem('qlbm_exams') || '[]');
     this.boards = JSON.parse(localStorage.getItem('qlbm_boards') || '[]');
@@ -38,6 +41,7 @@ class StorageService {
 
   private saveToLocalStorage() {
     localStorage.setItem('qlbm_training_types', JSON.stringify(this.trainingTypes));
+    localStorage.setItem('qlbm_global_subjects', JSON.stringify(this.globalSubjects));
     localStorage.setItem('qlbm_personnel', JSON.stringify(this.personnel));
     localStorage.setItem('qlbm_exams', JSON.stringify(this.exams));
     localStorage.setItem('qlbm_boards', JSON.stringify(this.boards));
@@ -281,6 +285,38 @@ class StorageService {
 
     // Async sync with server
     fetch(`${BASE_URL}/training-types/${id}/`, {
+      method: 'DELETE'
+    }).catch(err => console.error('API sync error:', err));
+  }
+
+  // Global Subjects
+  getGlobalSubjects(): GlobalSubject[] {
+    return this.globalSubjects.length > 0 ? this.globalSubjects : INITIAL_GLOBAL_SUBJECTS;
+  }
+
+  saveGlobalSubject(item: GlobalSubject): void {
+    const list = this.globalSubjects;
+    const index = list.findIndex(x => x.id === item.id);
+    const isNew = index < 0;
+    if (!isNew) {
+      list[index] = item;
+    } else {
+      list.push(item);
+    }
+    this.saveToLocalStorage();
+
+    fetch(`${BASE_URL}/global-subjects/${isNew ? '' : item.id + '/'}`, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    }).catch(err => console.error('API sync error:', err));
+  }
+
+  deleteGlobalSubject(id: string): void {
+    this.globalSubjects = this.globalSubjects.filter(x => x.id !== id);
+    this.saveToLocalStorage();
+
+    fetch(`${BASE_URL}/global-subjects/${id}/`, {
       method: 'DELETE'
     }).catch(err => console.error('API sync error:', err));
   }

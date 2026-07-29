@@ -63,7 +63,7 @@ export function wrapHtmlForDocx(
 </html>`;
 }
 
-// Download a single document as Word (.doc) file
+// Download a single document as Word (.docx) file
 export function exportSingleFormToDoc(
   title: string, 
   htmlContent: string, 
@@ -74,9 +74,9 @@ export function exportSingleFormToDoc(
 ): void {
   const rendered = renderTemplateHtml(htmlContent, exam, board);
   const fullDocHtml = wrapHtmlForDocx(title, rendered, pageSize, margins);
-  const blob = new Blob(['\ufeff' + fullDocHtml], { type: 'application/msword;charset=utf-8' });
+  const blob = new Blob(['\ufeff' + fullDocHtml], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document;charset=utf-8' });
   const safeTitle = title.replace(/[^a-zA-Z0-9_ -]/g, '_');
-  saveAs(blob, `${safeTitle}.doc`);
+  saveAs(blob, `${safeTitle}.docx`);
 }
 
 // Bulk Export for a single board
@@ -101,13 +101,13 @@ export async function exportBoardFormsToZip(exam: Exam, board: ExamBoard): Promi
       right: tmpl.marginRight ?? 15
     };
     const docHtml = wrapHtmlForDocx(tmpl.title, rendered, pageSize, margins);
-    const safeTitle = `${idx + 1}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.doc`;
+    const safeTitle = `${idx + 1}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.docx`;
     folder?.file(safeTitle, '\ufeff' + docHtml);
   });
 
   const zipContent = await zip.generateAsync({ type: 'blob' });
   const safeExamName = exam.code || 'KyThi';
-  saveAs(zipContent, `BiieuMau_${board.boardCode}_${safeExamName}.zip`);
+  saveAs(zipContent, `BieuMau_${board.boardCode}_${safeExamName}.zip`);
 }
 
 // Bulk Export ALL boards for an exam (1-Click Export)
@@ -139,7 +139,7 @@ export async function exportAllExamFormsToZip(exam: Exam): Promise<void> {
           right: tmpl.marginRight ?? 15
         };
         const docHtml = wrapHtmlForDocx(tmpl.title, rendered, pageSize, margins);
-        const safeTitle = `${String(idx + 1).padStart(2, '0')}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.doc`;
+        const safeTitle = `${String(idx + 1).padStart(2, '0')}_${tmpl.title.replace(/[^a-zA-Z0-9_ -]/g, '_')}.docx`;
         folder?.file(safeTitle, '\ufeff' + docHtml);
         totalFiles++;
       });

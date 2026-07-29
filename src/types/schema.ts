@@ -6,14 +6,23 @@ export interface TrainingType {
   createdAt: string;
 }
 
+export interface GlobalSubject {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+}
+
 export interface Personnel {
   id: string;
   fullName: string;
-  academicTitle: string; // TS., PGS.TS., ThS., CN.
+  academicTitle?: string; // TS, PGS.TS, ThS, CN, hoặc để trống
   department: string; // Đơn vị / Khoa phòng
   position: string; // Chức vụ chính quyền
   phone?: string;
   email?: string;
+  militaryRank?: string; // Cấp bậc (Thiếu tá, Trung tá, Thượng tá, Đại tá ....)
   createdAt: string;
 }
 
@@ -47,6 +56,9 @@ export interface ExamBoard {
   boardCode: string; // DE_THI, COI_THI, PHACH, CHAM_THI, GIAM_SAT
   boardName: string; // Ban Đề thi, Ban Coi thi...
   description?: string;
+  pdfFile?: string; // Data URL or File Path of scanned signed PDF
+  pdfStatus?: 'pending' | 'uploaded'; // 'pending' (Chờ ký duyệt) | 'uploaded' (Đã lưu hồ sơ)
+  pdfUploadedAt?: string;
   createdAt: string;
 }
 

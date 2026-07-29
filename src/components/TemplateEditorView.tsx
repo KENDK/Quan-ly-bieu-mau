@@ -109,6 +109,69 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
     }
   };
 
+  const handleLoadDecree30Boilerplate = () => {
+    if (!editingItem) return;
+    const decree30Html = `<div style="font-family: 'Times New Roman', Times, serif; font-size: 14pt; line-height: 1.4; color: #000; padding: 0;">
+  <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 20px;">
+    <tr>
+      <td style="width: 45%; text-align: center; vertical-align: top; font-size: 13pt;">
+        <strong>HỌC VIỆN / BAN TỔ CHỨC</strong><br />
+        <strong>HỘI ĐỒNG THI TỐT NGHIỆP</strong><br />
+        <span style="display: block; width: 60px; height: 1px; background: #000; margin: 5px auto 0 auto;"></span>
+      </td>
+      <td style="width: 55%; text-align: center; vertical-align: top; font-size: 13pt;">
+        <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br />
+        <strong><u>Độc lập - Tự do - Hạnh phúc</u></strong><br />
+        <em style="font-size: 12pt; display: block; margin-top: 5px;">..., ngày {{KyThi.NgayThi}}</em>
+      </td>
+    </tr>
+  </table>
+
+  <h3 style="text-align: center; font-size: 16pt; margin: 25px 0 15px 0; font-weight: bold; text-transform: uppercase;">
+    BIÊN BẢN VỀ VIỆC {{Ban.Ten}}
+  </h3>
+  <p style="text-align: center; font-style: italic; margin-bottom: 20px;">(Kỳ thi: {{KyThi.TenKyThi}} - Khóa: {{KyThi.KhoaThi}})</p>
+
+  <p style="text-indent: 30px; margin-bottom: 10px;">
+    Hôm nay, vào hồi ..... giờ ..... ngày {{KyThi.NgayThi}}, tại địa điểm {{KyThi.DiaDiem}}, 
+    <strong>{{Ban.Ten}}</strong> đã tiến hành họp và làm việc theo đúng quy định hành chính.
+  </p>
+
+  <p style="font-weight: bold; margin-top: 15px; margin-bottom: 5px;">I. THÀNH PHẦN THAM GIA BIÊN BẢN:</p>
+  {{Bang.DanhSachThanhVien}}
+
+  <p style="font-weight: bold; margin-top: 15px; margin-bottom: 5px;">II. NỘI DUNG LÀM VIỆC & KẾT QUẢ:</p>
+  <p style="text-indent: 30px;">1. Tổng số cán bộ có mặt: {{ThongKe.TongSoThanhVien}} đồng chí.</p>
+  <p style="text-indent: 30px;">2. Nội dung chi tiết: ..........................................................................................................................................</p>
+
+  <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 40px; page-break-inside: avoid;">
+    <tr>
+      <td style="width: 50%; text-align: center; vertical-align: top; font-size: 13pt;">
+        <strong>THƯ KÝ BAN</strong><br />
+        <em style="font-size: 11pt;">(Ký và ghi rõ họ tên)</em><br /><br /><br /><br />
+        <strong>{{Ban.ThuKy.HoTen}}</strong>
+      </td>
+      <td style="width: 50%; text-align: center; vertical-align: top; font-size: 13pt;">
+        <strong>TRƯỞNG BAN</strong><br />
+        <em style="font-size: 11pt;">(Ký và ghi rõ họ tên)</em><br /><br /><br /><br />
+        <strong>{{Ban.TruongBan.HoTen}}</strong>
+      </td>
+    </tr>
+  </table>
+</div>`;
+
+    setEditingItem({
+      ...editingItem,
+      htmlContent: decree30Html,
+      pageSize: 'A4',
+      marginTop: 20,
+      marginBottom: 20,
+      marginLeft: 30,
+      marginRight: 15
+    });
+    setActiveTab('visual');
+  };
+
   const handleImportDocx = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -210,6 +273,17 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
             </h3>
 
             <div className="flex items-center gap-3">
+              {/* Tải mẫu Nghị định 30 */}
+              <button
+                type="button"
+                onClick={handleLoadDecree30Boilerplate}
+                className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-sm"
+                title="Tải cấu trúc mẫu biểu hành chính Việt Nam chuẩn Nghị định 30/2020/NĐ-CP"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Mẫu Chuẩn NĐ 30</span>
+              </button>
+
               {/* Nhập từ Word */}
               <label className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer transition select-none shadow-sm">
                 <FileText className="w-3.5 h-3.5" />
@@ -368,9 +442,13 @@ export const TemplateEditorView: React.FC<TemplateEditorViewProps> = ({
                     <label className="block text-xs font-semibold text-slate-700">Soạn Thảo Trực Quan (Hỗ trợ copy/paste từ Word)</label>
                     <div className="bg-slate-100 p-6 rounded-2xl border border-slate-200 flex justify-center overflow-x-auto min-h-[500px]">
                       <div 
-                        className="bg-white shadow-xl border border-slate-300 rounded-sm w-full transition-all duration-300 overflow-hidden"
+                        className="bg-white shadow-xl border-2 border-dashed border-slate-400 rounded-sm w-full transition-all duration-300 overflow-hidden"
                         style={{
                           maxWidth: editingItem.pageSize === 'A5' ? '148mm' : editingItem.pageSize === 'Letter' ? '216mm' : '210mm',
+                          paddingTop: `${editingItem.marginTop ?? 20}mm`,
+                          paddingBottom: `${editingItem.marginBottom ?? 20}mm`,
+                          paddingLeft: `${editingItem.marginLeft ?? 30}mm`,
+                          paddingRight: `${editingItem.marginRight ?? 15}mm`,
                         }}
                       >
                         <JoditEditor

@@ -165,7 +165,7 @@ export const FormGeneratorView: React.FC<FormGeneratorViewProps> = ({
             onClick={handleExportSingleWord}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition"
           >
-            <FileText className="w-4 h-4" /> Tải Word (.doc)
+            <FileText className="w-4 h-4" /> Tải Word (.docx)
           </button>
         </div>
       </div>

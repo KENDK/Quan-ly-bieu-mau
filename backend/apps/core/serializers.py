@@ -1,9 +1,14 @@
 from rest_framework import serializers
-from .models import TrainingType, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate
+from .models import TrainingType, GlobalSubject, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate
 
 class TrainingTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingType
+        fields = '__all__'
+
+class GlobalSubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GlobalSubject
         fields = '__all__'
 
 class PersonnelSerializer(serializers.ModelSerializer):

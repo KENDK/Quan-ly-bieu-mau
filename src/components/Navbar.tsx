@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  BookOpen,
 } from 'lucide-react';
 import type { Exam } from '../types/schema';
 
@@ -45,6 +46,7 @@ const EXAM_NAV = [
 // Nhóm "Cấu hình" — collapsible
 const CONFIG_NAV = [
   { id: 'training', label: 'Loại Hình Đào Tạo', icon: GraduationCap },
+  { id: 'global-subjects', label: 'Thư Viện Môn Thi', icon: BookOpen },
   { id: 'personnel', label: 'Nhân Sự & Cán Bộ', icon: Users },
   { id: 'templates', label: 'Thư Viện Biểu Mẫu', icon: FileText },
 ];

@@ -132,7 +132,7 @@ function buildPersonnelDetailSheet(
     const myAssignments = allAssignments.filter((a) => a.personnelId === p.id);
     if (myAssignments.length === 0) {
       rows.push([
-        stt++, p.fullName, p.academicTitle, p.department, p.position,
+        stt++, p.fullName, p.academicTitle || '', p.department, p.position,
         '', '', '', '', '', '', '', '', '',
       ]);
       continue;
@@ -144,7 +144,7 @@ function buildPersonnelDetailSheet(
       rows.push([
         stt++,
         p.fullName,
-        p.academicTitle,
+        p.academicTitle || '',
         p.department,
         p.position,
         exam?.code ?? '',
@@ -265,7 +265,7 @@ function buildPersonnelPivotSheet(
     return [
       i + 1,
       p.fullName,
-      p.academicTitle,
+      p.academicTitle || '',
       p.department,
       p.position,
       involvedExams.length,

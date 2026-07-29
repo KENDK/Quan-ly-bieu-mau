@@ -1,4 +1,4 @@
-import type { TrainingType, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate } from '../types/schema';
+import type { TrainingType, GlobalSubject, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate } from '../types/schema';
 
 export const INITIAL_TRAINING_TYPES: TrainingType[] = [
   {
@@ -29,6 +29,15 @@ export const INITIAL_TRAINING_TYPES: TrainingType[] = [
     description: 'Các khóa bồi dưỡng cập nhật kiến thức cán bộ quản lý',
     createdAt: new Date().toISOString()
   }
+];
+
+export const INITIAL_GLOBAL_SUBJECTS: GlobalSubject[] = [
+  { id: 'gs-1', code: 'XDD', name: 'Xây dựng Đảng & Chính quyền nhà nước', description: 'Môn thi chuyên ngành Xây dựng Đảng', createdAt: new Date().toISOString() },
+  { id: 'gs-2', code: 'THMLN', name: 'Triết học Mác - Lênin', description: 'Môn thi khối kiến thức lý luận cơ bản', createdAt: new Date().toISOString() },
+  { id: 'gs-3', code: 'KTTCh', name: 'Kinh tế chính trị Mác - Lênin', description: 'Môn thi khối kiến thức kinh tế', createdAt: new Date().toISOString() },
+  { id: 'gs-4', code: 'CNXH', name: 'Chủ nghĩa xã hội khoa học', description: 'Môn thi lý luận xã hội', createdAt: new Date().toISOString() },
+  { id: 'gs-5', code: 'TTDCh', name: 'Tư tưởng Hồ Chí Minh', description: 'Môn thi bắt buộc toàn khóa', createdAt: new Date().toISOString() },
+  { id: 'gs-6', code: 'LSĐ', name: 'Lịch sử Đảng Cộng sản Việt Nam', description: 'Môn thi chuyên ngành Lịch sử', createdAt: new Date().toISOString() },
 ];
 
 export const INITIAL_PERSONNEL: Personnel[] = [

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { DashboardView } from './components/DashboardView';
 import { TrainingTypesView } from './components/TrainingTypesView';
+import { GlobalSubjectsView } from './components/GlobalSubjectsView';
 import { PersonnelView } from './components/PersonnelView';
 import { ExamsView } from './components/ExamsView';
 import { BoardsManagementView } from './components/BoardsManagementView';
@@ -10,7 +11,7 @@ import { FormGeneratorView } from './components/FormGeneratorView';
 import { StatisticsView } from './components/StatisticsView';
 import { storage } from './services/storage';
 import { exportAllExamFormsToZip } from './services/bulkExporter';
-import type { TrainingType, Personnel, Exam, ExamBoard, FormTemplate } from './types/schema';
+import type { TrainingType, GlobalSubject, Personnel, Exam, ExamBoard, FormTemplate } from './types/schema';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -19,6 +20,7 @@ export function App() {
 
   // State collections
   const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]);
+  const [globalSubjects, setGlobalSubjects] = useState<GlobalSubject[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [boards, setBoards] = useState<ExamBoard[]>([]);
@@ -28,6 +30,7 @@ export function App() {
   // Load all data from storage
   const refreshAllData = () => {
     setTrainingTypes(storage.getTrainingTypes());
+    setGlobalSubjects(storage.getGlobalSubjects());
     setPersonnel(storage.getPersonnel());
     const allExams = storage.getExams();
     setExams(allExams);
@@ -99,6 +102,16 @@ export function App() {
     refreshAllData();
   };
 
+  // Handlers for Global Subjects
+  const handleSaveGlobalSubject = (item: GlobalSubject) => {
+    storage.saveGlobalSubject(item);
+    refreshAllData();
+  };
+  const handleDeleteGlobalSubject = (id: string) => {
+    storage.deleteGlobalSubject(id);
+    refreshAllData();
+  };
+
   // Handlers for Personnel
   const handleSavePersonnel = (item: Personnel) => {
     storage.savePersonnel(item);
@@ -149,6 +162,7 @@ export function App() {
     generator: 'Tạo & In Biểu Mẫu',
     statistics: 'Thống Kê & Báo Cáo',
     training: 'Cấu Hình › Loại Hình Đào Tạo',
+    'global-subjects': 'Cấu Hình › Thư Viện Môn Thi',
     personnel: 'Cấu Hình › Nhân Sự & Cán Bộ',
     templates: 'Cấu Hình › Thư Viện Biểu Mẫu',
   };
@@ -210,6 +224,14 @@ export function App() {
             />
           )}
 
+          {activeTab === 'global-subjects' && (
+            <GlobalSubjectsView
+              subjects={globalSubjects}
+              onSave={handleSaveGlobalSubject}
+              onDelete={handleDeleteGlobalSubject}
+            />
+          )}
+
           {activeTab === 'personnel' && (
             <PersonnelView
               personnel={personnel}
@@ -222,6 +244,7 @@ export function App() {
             <ExamsView
               exams={exams}
               trainingTypes={trainingTypes}
+              globalSubjects={globalSubjects}
               activeExamId={activeExamId}
               onSelectExam={handleSelectExam}
               onSave={handleSaveExam}

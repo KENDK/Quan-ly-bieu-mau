@@ -5,13 +5,18 @@ services:
     image: postgres:15-alpine
     container_name: qlbm_db
     environment:
-      POSTGRES_DB: qlbm_db
-      POSTGRES_USER: qlbm_user
-      POSTGRES_PASSWORD: qlbm_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT_HOST}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   backend:
@@ -19,15 +24,19 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: qlbm_backend
-    command: >
-      sh -c "python manage.py migrate &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     environment:
-      - DATABASE_URL=postgres://qlbm_user:qlbm_password@db:5432/qlbm_db
-      - DEBUG=False
-      - SECRET_KEY=django-insecure-qlbm-secret-key-for-local-development-prod-123
+      - DATABASE_URL=${DATABASE_URL}
+      - DEBUG=${DJANGO_DEBUG}
+      - SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@edu.vn}
+    volumes:
+      - django_static:/app/static
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
 
   frontend:
@@ -36,10 +45,13 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: qlbm_frontend
     ports:
-      - "8090:80"
+      - "${NGINX_PORT_HOST}:80"
+    volumes:
+      - django_static:/usr/share/nginx/html/django_static:ro
     depends_on:
       - backend
     restart: always
 
 volumes:
   postgres_data:
+  django_static:

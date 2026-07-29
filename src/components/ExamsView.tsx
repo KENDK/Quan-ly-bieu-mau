@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Award, Save, X, BookOpen, Calendar, MapPin, Users, PlusCircle, Trash, Download, FileSpreadsheet } from 'lucide-react';
-import type { Exam, TrainingType } from '../types/schema';
+import type { Exam, TrainingType, GlobalSubject } from '../types/schema';
 import * as XLSX from 'xlsx';
 
 interface ExamsViewProps {
   exams: Exam[];
   trainingTypes: TrainingType[];
+  globalSubjects?: GlobalSubject[];
   activeExamId: string;
   onSelectExam: (id: string) => void;
   onSave: (item: Exam) => void;
@@ -15,6 +16,7 @@ interface ExamsViewProps {
 export const ExamsView: React.FC<ExamsViewProps> = ({
   exams,
   trainingTypes,
+  globalSubjects = [],
   activeExamId,
   onSelectExam,
   onSave,
@@ -360,21 +362,42 @@ export const ExamsView: React.FC<ExamsViewProps> = ({
                 Danh Sách Các Môn Thi Tốt Nghiệp ({editingItem.subjectsList?.length || 0} môn)
               </label>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nhập tên môn thi (VD: Môn 1: Triết học Mác - Lênin)..."
-                  value={subjectInput}
-                  onChange={(e) => setSubjectInput(e.target.value)}
-                  className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddSubject}
-                  className="flex items-center gap-1 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" /> Thêm Môn
-                </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {globalSubjects.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSubjectInput(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                    className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 sm:w-64"
+                  >
+                    <option value="">-- Chọn từ Thư viện môn thi --</option>
+                    {globalSubjects.map(gs => (
+                      <option key={gs.id} value={`${gs.name} (${gs.code})`}>
+                        {gs.name} [{gs.code}]
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <div className="flex flex-1 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nhập tên môn thi (VD: Môn 1: Triết học Mác - Lênin)..."
+                    value={subjectInput}
+                    onChange={(e) => setSubjectInput(e.target.value)}
+                    className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSubject}
+                    className="flex items-center gap-1 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" /> Thêm Môn
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2 pt-1">

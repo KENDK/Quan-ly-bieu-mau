@@ -1,7 +1,8 @@
 from rest_framework import viewsets
-from .models import TrainingType, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate
+from .models import TrainingType, GlobalSubject, Personnel, Exam, ExamBoard, BoardMemberAssignment, FormTemplate
 from .serializers import (
     TrainingTypeSerializer,
+    GlobalSubjectSerializer,
     PersonnelSerializer,
     ExamSerializer,
     ExamBoardSerializer,
@@ -12,6 +13,10 @@ from .serializers import (
 class TrainingTypeViewSet(viewsets.ModelViewSet):
     queryset = TrainingType.objects.all()
     serializer_class = TrainingTypeSerializer
+
+class GlobalSubjectViewSet(viewsets.ModelViewSet):
+    queryset = GlobalSubject.objects.all()
+    serializer_class = GlobalSubjectSerializer
 
 class PersonnelViewSet(viewsets.ModelViewSet):
     queryset = Personnel.objects.all()

@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Django build static files
+staticfiles/
+
+# BMAD outputs
+_bmad-output/
