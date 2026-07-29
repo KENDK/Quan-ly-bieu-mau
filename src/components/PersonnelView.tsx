@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Users, Save, X, Search, Phone, Mail, Building } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, Save, X, Search, Phone, Mail, Building, Download, FileSpreadsheet } from 'lucide-react';
 import type { Personnel } from '../types/schema';
+import * as XLSX from 'xlsx';
 
 interface PersonnelViewProps {
   personnel: Personnel[];
@@ -15,6 +16,107 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
 }) => {
   const [editingItem, setEditingItem] = useState<Partial<Personnel> | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleDownloadTemplate = () => {
+    const headers = [
+      'Họ và Tên',
+      'Học vị / Học hàm',
+      'Đơn vị / Khoa phòng',
+      'Chức vụ',
+      'Số điện thoại',
+      'Email'
+    ];
+    const data = [
+      headers,
+      ['Nguyễn Văn A', 'TS.', 'Khoa Công nghệ thông tin', 'Trưởng bộ môn', '0912345678', 'nva@university.edu.vn'],
+      ['Trần Thị B', 'PGS.TS.', 'Khoa Lý luận chính trị', 'Phó Trưởng khoa', '0987654321', 'ttb@university.edu.vn'],
+      ['Lê Văn C', 'ThS.', 'Phòng Đào tạo', 'Chuyên viên', '', 'lvc@university.edu.vn']
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Mau_Import_Can_Bo');
+    XLSX.writeFile(wb, 'Mau_Import_Can_Bo.xlsx');
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const wb = XLSX.read(arrayBuffer, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+
+      if (rows.length <= 1) {
+        alert('File excel không chứa dữ liệu hoặc sai định dạng');
+        return;
+      }
+
+      let importCount = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0 || !row[0]) continue;
+
+        const fullName = String(row[0]).trim();
+        const academicTitle = String(row[1] || 'CN').trim();
+        const department = String(row[2]).trim();
+        const position = String(row[3] || '').trim();
+        const phone = String(row[4] || '').trim();
+        const email = String(row[5] || '').trim();
+
+        if (!fullName || !department) continue;
+
+        const newPersonnel: Personnel = {
+          id: `p-${Date.now()}-${i}`,
+          fullName,
+          academicTitle,
+          department,
+          position,
+          phone,
+          email,
+          createdAt: new Date().toISOString()
+        };
+
+        onSave(newPersonnel);
+        importCount++;
+      }
+
+      alert(`Đã nhập thành công ${importCount} cán bộ từ file Excel!`);
+      e.target.value = '';
+    } catch (err: any) {
+      alert('Lỗi khi đọc file Excel: ' + err.message);
+    }
+  };
+
+  const handleExportExcel = () => {
+    const headers = [
+      'STT',
+      'Họ và Tên',
+      'Học vị / Học hàm',
+      'Đơn vị / Khoa phòng',
+      'Chức vụ',
+      'Số điện thoại',
+      'Email',
+      'Ngày tạo'
+    ];
+    const rows = personnel.map((p, i) => [
+      i + 1,
+      p.fullName,
+      p.academicTitle,
+      p.department,
+      p.position,
+      p.phone || '',
+      p.email || '',
+      new Date(p.createdAt).toLocaleDateString('vi-VN')
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh_Sach_Can_Bo');
+    XLSX.writeFile(wb, 'Danh_Sach_Can_Bo.xlsx');
+  };
 
   const handleCreateNew = () => {
     setEditingItem({
@@ -66,7 +168,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
@@ -77,12 +179,45 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          <button
-            onClick={handleCreateNew}
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" /> Thêm Cán Bộ
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* Tải File Excel Mẫu */}
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-sm"
+              title="Tải File Excel Mẫu"
+            >
+              <Download className="w-4 h-4 text-slate-500" /> Tải Mẫu
+            </button>
+
+            {/* Nhập từ Excel */}
+            <label className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold px-3 py-2.5 rounded-xl cursor-pointer transition shadow-sm">
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Nhập Excel</span>
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                onChange={handleImportExcel}
+              />
+            </label>
+
+            {/* Xuất Excel */}
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-sm"
+              title="Xuất Danh Sách Cán Bộ"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> Xuất Excel
+            </button>
+
+            <button
+              onClick={handleCreateNew}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" /> Thêm Cán Bộ
+            </button>
+          </div>
         </div>
       </div>
 

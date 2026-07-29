@@ -55,72 +55,144 @@ class StorageService {
       
       // If server database is empty, seed it
       if (tTypes.length === 0) {
-        console.log('Seeding initial data to Django/PostgreSQL backend...');
+        const hasLocalData = this.trainingTypes.length > 0 || this.personnel.length > 0 || this.exams.length > 0;
         
-        // Seed Training Types
-        for (const item of INITIAL_TRAINING_TYPES) {
-          await fetch(`${BASE_URL}/training-types/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item)
-          });
-        }
-        tTypesRes = await fetch(`${BASE_URL}/training-types/`);
-        tTypes = await tTypesRes.json();
+        if (hasLocalData) {
+          console.log('Migrating existing LocalStorage data to Django/PostgreSQL backend...');
+          
+          // Seed Training Types from local storage
+          for (const item of this.trainingTypes) {
+            await fetch(`${BASE_URL}/training-types/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
+          tTypesRes = await fetch(`${BASE_URL}/training-types/`);
+          tTypes = await tTypesRes.json();
 
-        // Seed Personnel
-        for (const item of INITIAL_PERSONNEL) {
-          await fetch(`${BASE_URL}/personnel/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item)
-          });
-        }
+          // Seed Personnel from local storage
+          for (const item of this.personnel) {
+            await fetch(`${BASE_URL}/personnel/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
 
-        // Seed Exams
-        for (const item of INITIAL_EXAMS) {
-          await fetch(`${BASE_URL}/exams/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...item,
-              training_type: item.trainingTypeId // foreign key relation
-            })
-          });
-        }
+          // Seed Exams from local storage
+          for (const item of this.exams) {
+            await fetch(`${BASE_URL}/exams/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                training_type: item.trainingTypeId
+              })
+            });
+          }
 
-        // Seed Boards
-        for (const item of INITIAL_BOARDS) {
-          await fetch(`${BASE_URL}/boards/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...item,
-              exam: item.examId // map key name to match django foreign key
-            })
-          });
-        }
+          // Seed Boards from local storage
+          for (const item of this.boards) {
+            await fetch(`${BASE_URL}/boards/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                exam: item.examId
+              })
+            });
+          }
 
-        // Seed Assignments
-        for (const item of INITIAL_ASSIGNMENTS) {
-          await fetch(`${BASE_URL}/assignments/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...item,
-              exam_board: item.examBoardId,
-              personnel: item.personnelId
-            })
-          });
-        }
+          // Seed Assignments from local storage
+          for (const item of this.assignments) {
+            await fetch(`${BASE_URL}/assignments/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                exam_board: item.examBoardId,
+                personnel: item.personnelId
+              })
+            });
+          }
 
-        // Seed Templates
-        for (const item of INITIAL_TEMPLATES) {
-          await fetch(`${BASE_URL}/templates/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(item)
-          });
+          // Seed Templates from local storage
+          for (const item of this.templates) {
+            await fetch(`${BASE_URL}/templates/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
+        } else {
+          console.log('Seeding initial defaults to Django/PostgreSQL backend...');
+          
+          // Seed Training Types
+          for (const item of INITIAL_TRAINING_TYPES) {
+            await fetch(`${BASE_URL}/training-types/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
+          tTypesRes = await fetch(`${BASE_URL}/training-types/`);
+          tTypes = await tTypesRes.json();
+
+          // Seed Personnel
+          for (const item of INITIAL_PERSONNEL) {
+            await fetch(`${BASE_URL}/personnel/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
+
+          // Seed Exams
+          for (const item of INITIAL_EXAMS) {
+            await fetch(`${BASE_URL}/exams/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                training_type: item.trainingTypeId
+              })
+            });
+          }
+
+          // Seed Boards
+          for (const item of INITIAL_BOARDS) {
+            await fetch(`${BASE_URL}/boards/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                exam: item.examId
+              })
+            });
+          }
+
+          // Seed Assignments
+          for (const item of INITIAL_ASSIGNMENTS) {
+            await fetch(`${BASE_URL}/assignments/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...item,
+                exam_board: item.examBoardId,
+                personnel: item.personnelId
+              })
+            });
+          }
+
+          // Seed Templates
+          for (const item of INITIAL_TEMPLATES) {
+            await fetch(`${BASE_URL}/templates/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+          }
         }
       }
 
